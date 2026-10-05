@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tweet Sentiment Analysis System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Tweet Sentiment Analysis</h1>
+            <p>Analyze the sentiment of any tweet using NLP and Machine Learning.</p>
+        </header>
+
+        <main>
+            <!-- Prediction Card -->
+            <div class="prediction-card">
+                <h2>Analyze Sentiment</h2>
+                <form id="sentimentForm">
+                    <textarea
+                        id="tweetInput"
+                        placeholder="Enter a tweet or text here..."
+                        rows="4"
+                        maxlength="280"
+                    ></textarea>
+                    <br>
+                    <button type="submit">Analyze Sentiment</button>
+                </form>
+
+                <!-- Result Display -->
+                <div id="result" class="result" style="display: none;">
+                    <h3>Sentiment:</h3>
+                    <div id="sentimentOutput" class="sentiment-output">
+                        <span id="sentimentEmoji"></span>
+                        <span id="sentimentText"></span>
+                    </div>
+                    <div id="confidenceOutput" class="confidence">
+                        Confidence: <span id="confidenceValue"></span>%
+                    </div>
+                </div>
+            </div>
+
+            <!-- Example Tweets -->
+            <section class="examples">
+                <h2>Example Tweets</h2>
+                <div class="example-tweets">
+                    <button class="example-btn" data-text="This product is absolutely amazing!">
+                        "This product is absolutely amazing!"
+                    </button>
+                    <button class="example-btn" data-text="The service was terrible.">
+                        "The service was terrible."
+                    </button>
+                    <button class="example-btn" data-text="The weather is okay today.">
+                        "The weather is okay today."
+                    </button>
+                </div>
+            </section>
+
+            <!-- Model Information -->
+            <section class="model-info">
+                <h2>Model Information</h2>
+                <div class="info-cards">
+                    <div class="card">
+                        <h3>Model</h3>
+                        <p>Logistic Regression</p>
+                    </div>
+                    <div class="card">
+                        <h3>Features</h3>
+                        <p>TF-IDF</p>
+                    </div>
+                    <div class="card">
+                        <h3>Classes</h3>
+                        <p>Positive / Negative / Neutral</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Analytics Section -->
+            <section class="analytics">
+                <h2>Model Performance</h2>
+                <div id="analyticsContent" class="analytics-cards">
+                    <!-- Analytics will be loaded here via JavaScript -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
