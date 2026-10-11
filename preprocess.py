@@ -1,44 +1,57 @@
+
+import os
 import re
 import nltk
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
 
-# Download required NLTK data
+# Store NLTK resources in a writable temporary directory on Vercel.
+NLTK_DATA_DIR = "/tmp/nltk_data"
+os.makedirs(NLTK_DATA_DIR, exist_ok=True)
+nltk.data.path.insert(0, NLTK_DATA_DIR)
+
+
 def download_nltk_data():
-    """Download required NLTK data packages"""
-    try:
-        nltk.data.find('tokenizers/punkt')
-    except LookupError:
-        nltk.download('punkt')
+    """Download required NLTK resources if they are missing."""
+    resources = {
+        "tokenizers/punkt": "punkt",
+        "tokenizers/punkt_tab": "punkt_tab",
+        "corpora/stopwords": "stopwords",
+    }
 
-    try:
-        nltk.data.find('tokenizers/punkt_tab')
-    except LookupError:
-        nltk.download('punkt_tab')
+    for resource_path, package in resources.items():
+        try:
+            nltk.data.find(resource_path)
+        except LookupError:
+            success = nltk.download(
+                package,
+                download_dir=NLTK_DATA_DIR,
+                quiet=True,
+            )
+            if not success:
+                raise RuntimeError(
+                    f"Could not download required NLTK resource: {package}"
+                )
 
-    try:
-        nltk.data.find('corpora/stopwords')
-    except LookupError:
-        nltk.download('stopwords')
 
 download_nltk_data()
 
+
 def preprocess_text(text):
     """
-    Preprocess text for sentiment analysis
-
-    Args:
-        text (str): Input text to preprocess
-
-    Returns:
-        str: Preprocessed text
+    Preprocess text for sentiment analysis.
     """
     # Convert to lowercase
     text = text.lower()
 
     # Remove URLs
-    text = re.sub(r'http\S+|www\S+|https\S+', '', text, flags=re.MULTILINE)
+    text = re.sub(
+        r'http\S+|www\S+|https\S+',
+        '',
+        text,
+        flags=re.MULTILINE,
+    )
 
     # Remove @mentions
     text = re.sub(r'@\w+', '', text)
@@ -66,12 +79,12 @@ def preprocess_text(text):
     # Join tokens back to text
     return ' '.join(tokens)
 
+
 if __name__ == "__main__":
-    # Test the preprocessing function
     test_texts = [
         "I love this new phone! It's amazing!",
         "This is the worst experience ever.",
-        "The weather is okay today."
+        "The weather is okay today.",
     ]
 
     for text in test_texts:
