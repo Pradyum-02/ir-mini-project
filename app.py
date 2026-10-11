@@ -1,88 +1,98 @@
-from flask import Flask, render_template, request, jsonify
+
+from pathlib import Path
+
 import joblib
-import numpy as np
-import os
+from flask import Flask, render_template, request, jsonify
 from preprocess import preprocess_text
 
 app = Flask(__name__)
 
-# Load model and vectorizer
+BASE_DIR = Path(__file__).resolve().parent
+MODEL_PATH = BASE_DIR / "models" / "sentiment_model.pkl"
+VECTORIZER_PATH = BASE_DIR / "models" / "tfidf_vectorizer.pkl"
+
 model = None
 vectorizer = None
 
-def load_model():
-    """Load the trained model and vectorizer"""
-    global model, vectorizer
-    try:
-        model_path = 'models/sentiment_model.pkl'
-        vectorizer_path = 'models/tfidf_vectorizer.pkl'
 
-        if os.path.exists(model_path) and os.path.exists(vectorizer_path):
-            model = joblib.load(model_path)
-            vectorizer = joblib.load(vectorizer_path)
-            print("Model and vectorizer loaded successfully!")
-            return True
-        else:
-            print("Model files not found. Please train the model first.")
+def load_model():
+    """Load the trained classifier and TF-IDF vectorizer."""
+    global model, vectorizer
+
+    if model is not None and vectorizer is not None:
+        return True
+
+    try:
+        if not MODEL_PATH.is_file() or not VECTORIZER_PATH.is_file():
+            app.logger.error("Trained model or vectorizer file is missing.")
             return False
-    except Exception as e:
-        print(f"Error loading model: {e}")
+
+        loaded_model = joblib.load(MODEL_PATH)
+        loaded_vectorizer = joblib.load(VECTORIZER_PATH)
+
+        model = loaded_model
+        vectorizer = loaded_vectorizer
+
+        app.logger.info("Sentiment model and vectorizer loaded.")
+        return True
+
+    except Exception:
+        app.logger.exception("Failed to load sentiment model.")
         return False
 
-@app.route('/')
-def index():
-    """Render the main page"""
-    return render_template('index.html')
 
-@app.route('/predict', methods=['POST'])
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+
+@app.route("/predict", methods=["POST"])
 def predict():
-    """Handle sentiment prediction"""
-    if model is None or vectorizer is None:
-        if not load_model():
-            return jsonify({'error': 'Model not available. Please train the model first.'}), 500
+    if not load_model():
+        return jsonify({
+            "error": "Model unavailable. Check the deployed model files and logs."
+        }), 500
 
     try:
-        # Get text from form
-        text = request.form.get('text', '')
+        text = request.form.get("text", "")
 
         if not text.strip():
-            return jsonify({'error': 'Please enter some text'}), 400
+            return jsonify({"error": "Please enter some text"}), 400
 
-        # Preprocess the text
         processed_text = preprocess_text(text)
-
-        # Vectorize the text
         text_tfidf = vectorizer.transform([processed_text])
 
-        # Make prediction
-        prediction = model.predict(text_tfidf)[0]
+        prediction = str(model.predict(text_tfidf)[0]).lower()
         probabilities = model.predict_proba(text_tfidf)[0]
 
-        # Get confidence score
-        confidence = max(probabilities) * 100
+        confidence = float(max(probabilities)) * 100
 
-        # Map prediction to sentiment with emoji
         sentiment_map = {
-            'positive': ('POSITIVE', '😊'),
-            'negative': ('NEGATIVE', '😡'),
-            'neutral': ('NEUTRAL', '😐')
+            "positive": ("POSITIVE", "😊"),
+            "negative": ("NEGATIVE", "😡"),
+            "neutral": ("NEUTRAL", "😐"),
         }
 
-        sentiment_label, emoji = sentiment_map.get(prediction, ('UNKNOWN', '❓'))
+        sentiment_label, emoji = sentiment_map.get(
+            prediction, ("UNKNOWN", "❓")
+        )
 
         return jsonify({
-            'sentiment': sentiment_label,
-            'emoji': emoji,
-            'confidence': round(confidence, 2),
-            'original_text': text
+            "sentiment": sentiment_label,
+            "emoji": emoji,
+            "confidence": round(confidence, 2),
+            "original_text": text,
         })
 
-    except Exception as e:
-        return jsonify({'error': f'Prediction error: {str(e)}'}), 500
+    except Exception:
+        app.logger.exception("Prediction failed.")
+        return jsonify({
+            "error": "Prediction failed. Check the application logs."
+        }), 500
 
-if __name__ == '__main__':
-    # Load model on startup
-    load_model()
-    print("Starting Flask application...")
-    print("Visit http://localhost:5000 to use the sentiment analyzer")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+
+if __name__ == "__main__":
+    if not load_model():
+        app.logger.warning("Starting without loaded models.")
+
+    app.run(debug=False, host="0.0.0.0", port=5000)
